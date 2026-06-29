@@ -154,21 +154,22 @@ export default function CalendarioPage() {
     
     if (isNowCompleted && userId) {
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single()
-      if (profile) await processTaskCompletion(task, profile)
+      if (profile) await processTaskCompletion(task.id, task.title, profile)
     }
     setTogglingTaskId(null)
   }
 
-  const handleSaveTask = (task: Task) => {
+  const handleSaveTask = async (task: Partial<Task>) => {
+    if (!task.id) return
     setTasks(prev => {
       const exists = prev.find(t => t.id === task.id)
-      if (exists) return prev.map(t => t.id === task.id ? task : t)
-      return [...prev, task]
+      if (exists) return prev.map(t => t.id === task.id ? { ...t, ...task } as Task : t)
+      return [...prev, task as Task]
     })
     setTaskModalOpen(false)
   }
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId))
     setTaskModalOpen(false)
   }

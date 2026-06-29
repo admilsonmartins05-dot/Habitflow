@@ -17,8 +17,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const { data: { session } } = await supabase.auth.getSession()
 
@@ -37,12 +36,12 @@ Responda sempre em português brasileiro. Seja conciso e direto.`,
       tools: {
         createTask: tool({
           description: 'Cria uma nova tarefa para o usuário no sistema.',
-          parameters: zodSchema(z.object({
+          parameters: z.object({
             title: z.string().describe('O título ou descrição da tarefa'),
             due_date: z.string().describe('Data da tarefa no formato YYYY-MM-DD'),
             due_time: z.string().optional().describe('Horário opcional no formato HH:MM'),
-          })),
-          execute: async ({ title, due_date, due_time }) => {
+          }),
+          execute: async ({ title, due_date, due_time }: any) => {
             if (!user) return { error: 'Usuário não autenticado' }
             const { data, error } = await supabase.from('tasks').insert({
               user_id: user.id,
@@ -54,15 +53,15 @@ Responda sempre em português brasileiro. Seja conciso e direto.`,
             if (error) return { error: error.message }
             return { success: true, task: { id: data.id, title: data.title, due_date: data.due_date } }
           },
-        }),
+        } as any),
 
         createHabit: tool({
           description: 'Cria um novo hábito no sistema para o usuário.',
-          parameters: zodSchema(z.object({
+          parameters: z.object({
             name: z.string().describe('Nome do hábito (curto e direto)'),
             emoji: z.string().describe('Um único emoji que representa o hábito'),
-          })),
-          execute: async ({ name, emoji }) => {
+          }),
+          execute: async ({ name, emoji }: any) => {
             if (!user) return { error: 'Usuário não autenticado' }
             const { data, error } = await supabase.from('habits').insert({
               user_id: user.id,
@@ -75,15 +74,15 @@ Responda sempre em português brasileiro. Seja conciso e direto.`,
             if (error) return { error: error.message }
             return { success: true, habit: { id: data.id, name: data.name } }
           },
-        }),
+        } as any),
 
         getCalendarEvents: tool({
           description: 'Busca os compromissos e eventos na agenda do Google Calendar do usuário.',
-          parameters: zodSchema(z.object({
+          parameters: z.object({
             startDate: z.string().describe('Data inicial no formato YYYY-MM-DD'),
             endDate: z.string().describe('Data final no formato YYYY-MM-DD'),
-          })),
-          execute: async ({ startDate, endDate }) => {
+          }),
+          execute: async ({ startDate, endDate }: any) => {
             if (!session?.provider_token) {
               return { events: [], message: 'Sem acesso ao Google Calendar nesta sessão. Tente sair e entrar novamente com sua conta Google.' }
             }
@@ -107,11 +106,11 @@ Responda sempre em português brasileiro. Seja conciso e direto.`,
               return { events: [], error: 'Erro ao buscar eventos.' }
             }
           },
-        }),
+        } as any),
       },
     })
 
-    return result.toDataStreamResponse()
+    return result.toTextStreamResponse()
   } catch (error: any) {
     console.error('Chat API Error:', error)
     return new Response(
